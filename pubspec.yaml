@@ -29,11 +29,23 @@ dependencies:
 
   # HTTP
   dio: ^5.7.0
+  http: ^1.2.0
+  url_launcher: ^6.3.0
+
+  # Google
+  google_sign_in: ^7.2.0
+  extension_google_sign_in_as_googleapis_auth: ^3.0.0
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+
+  # Supabase
+  supabase_flutter: ^2.8.0
 
   # Utils
   intl: ^0.19.0
   uuid: ^4.5.0
   logger: ^2.5.0
+  crypto: ^3.0.3
 
   # UI
   flutter_markdown: ^0.7.0

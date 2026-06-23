@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:speehive_social/core/constants/app_constants.dart';
+import 'package:speehive_social/core/di/providers.dart';
 import 'package:speehive_social/core/utils/extensions.dart';
 import 'package:speehive_social/presentation/chat/notifier/chat_notifier.dart';
 
@@ -15,12 +17,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _apiKeyController = TextEditingController();
   final _baseUrlController = TextEditingController();
   final _modelController = TextEditingController();
+  bool _outlookConnected = false;
+  bool _linkedinConnected = false;
+  bool _googleCalendarConnected = false;
 
   @override
   void initState() {
     super.initState();
     _baseUrlController.text = ApiConfig.baseUrl;
     _modelController.text = ApiConfig.defaultModel;
+    _checkConnectionStatus();
   }
 
   @override
@@ -29,6 +35,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _baseUrlController.dispose();
     _modelController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkConnectionStatus() async {
+    final outlookService = ref.read(outlookOAuthServiceProvider);
+    final linkedinService = ref.read(linkedinOAuthServiceProvider);
+    final googleCalendarService = ref.read(googleCalendarOAuthServiceProvider);
+
+    final outlookAuth = await outlookService.isAuthenticated();
+    final linkedinAuth = await linkedinService.isAuthenticated();
+    final googleCalendarAuth = await googleCalendarService.isAuthenticated();
+
+    if (mounted) {
+      setState(() {
+        _outlookConnected = outlookAuth;
+        _linkedinConnected = linkedinAuth;
+        _googleCalendarConnected = googleCalendarAuth;
+      });
+    }
   }
 
   void _saveConfig() {
@@ -46,6 +70,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Configuration saved')),
     );
+  }
+
+  Future<void> _connectOutlook() async {
+    final outlookService = ref.read(outlookOAuthServiceProvider);
+    final authUrl = outlookService.getAuthorizationUrl();
+    await launchUrl(authUrl, mode: LaunchMode.externalApplication);
+    // Note: In production, you'd need a deep link handler to capture the callback
+  }
+
+  Future<void> _disconnectOutlook() async {
+    final outlookService = ref.read(outlookOAuthServiceProvider);
+    await outlookService.logout();
+    setState(() => _outlookConnected = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Outlook disconnected')),
+      );
+    }
+  }
+
+  Future<void> _connectLinkedIn() async {
+    final linkedinService = ref.read(linkedinOAuthServiceProvider);
+    final authUrl = linkedinService.getAuthorizationUrl();
+    await launchUrl(authUrl, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _disconnectLinkedIn() async {
+    final linkedinService = ref.read(linkedinOAuthServiceProvider);
+    await linkedinService.logout();
+    setState(() => _linkedinConnected = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('LinkedIn disconnected')),
+      );
+    }
+  }
+
+  Future<void> _connectGoogleCalendar() async {
+    final googleCalendarService = ref.read(googleCalendarOAuthServiceProvider);
+    final success = await googleCalendarService.signIn();
+    if (mounted) {
+      setState(() => _googleCalendarConnected = success);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google Calendar connected')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google Calendar connection failed')),
+        );
+      }
+    }
+  }
+
+  Future<void> _disconnectGoogleCalendar() async {
+    final googleCalendarService = ref.read(googleCalendarOAuthServiceProvider);
+    await googleCalendarService.signOut();
+    setState(() => _googleCalendarConnected = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google Calendar disconnected')),
+      );
+    }
   }
 
   @override
@@ -127,18 +214,107 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _sectionHeader('Connected Accounts', cs),
           const SizedBox(height: 12),
           Card(
-            child: ListTile(
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _googleCalendarConnected
+                          ? Colors.red.withAlpha(20)
+                          : cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.calendar_today,
+                      color: _googleCalendarConnected ? Colors.red : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  title: const Text('Google Calendar'),
+                  subtitle: Text(
+                    _googleCalendarConnected ? 'Connected' : 'Not connected',
+                    style: TextStyle(
+                      color: _googleCalendarConnected ? Colors.red : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: _googleCalendarConnected
+                      ? TextButton(
+                          onPressed: _disconnectGoogleCalendar,
+                          child: const Text('Disconnect'),
+                        )
+                      : FilledButton.tonal(
+                          onPressed: _connectGoogleCalendar,
+                          child: const Text('Connect'),
+                        ),
                 ),
-                child: const Icon(Icons.link_off),
-              ),
-              title: const Text('No accounts connected'),
-              subtitle: const Text('Connect social accounts from the Social tab'),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _outlookConnected
+                          ? Colors.green.withAlpha(20)
+                          : cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.calendar_today,
+                      color: _outlookConnected ? Colors.green : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  title: const Text('Microsoft Outlook'),
+                  subtitle: Text(
+                    _outlookConnected ? 'Connected' : 'Not connected',
+                    style: TextStyle(
+                      color: _outlookConnected ? Colors.green : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: _outlookConnected
+                      ? TextButton(
+                          onPressed: _disconnectOutlook,
+                          child: const Text('Disconnect'),
+                        )
+                      : FilledButton.tonal(
+                          onPressed: _connectOutlook,
+                          child: const Text('Connect'),
+                        ),
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _linkedinConnected
+                          ? Colors.blue.withAlpha(20)
+                          : cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.work,
+                      color: _linkedinConnected ? Colors.blue : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  title: const Text('LinkedIn'),
+                  subtitle: Text(
+                    _linkedinConnected ? 'Connected' : 'Not connected',
+                    style: TextStyle(
+                      color: _linkedinConnected ? Colors.blue : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: _linkedinConnected
+                      ? TextButton(
+                          onPressed: _disconnectLinkedIn,
+                          child: const Text('Disconnect'),
+                        )
+                      : FilledButton.tonal(
+                          onPressed: _connectLinkedIn,
+                          child: const Text('Connect'),
+                        ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
@@ -153,7 +329,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: Text(AppConstants.appVersion,
                       style: context.textTheme.bodyMedium),
                 ),
-                Divider(height: 1, indent: 16, endIndent: 16),
+                const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
                   leading: Icon(Icons.terminal, color: cs.onSurfaceVariant),
                   title: const Text('AI SDK'),

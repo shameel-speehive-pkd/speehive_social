@@ -54,6 +54,12 @@ class ChatNotifier extends Notifier<ChatState> {
   ChatRepository get _chatRepository => _repo ?? ref.read(chatRepositoryProvider);
   AppAIProvider get _aiProvider => _ai ?? ref.read(aiProvider);
 
+  SocialMediaTools get _tools => SocialMediaTools(
+        googleCalendarDatasource: ref.read(googleCalendarDatasourceProvider),
+        outlookDatasource: ref.read(outlookCalendarDatasourceProvider),
+        linkedinDatasource: ref.read(linkedinPostDatasourceProvider),
+      );
+
   void sendMessage(String content) async {
     final userMessage = ChatMessage(
       id: _uuid.v4(),
@@ -72,7 +78,7 @@ class ChatNotifier extends Notifier<ChatState> {
     try {
       final result = await _chatRepository.generateResponse(
         messages: messages,
-        tools: SocialMediaTools.all,
+        tools: _tools.all,
       );
 
       if (result.isSuccess) {
@@ -122,7 +128,7 @@ class ChatNotifier extends Notifier<ChatState> {
     try {
       final result = await _chatRepository.streamResponse(
         messages: messages,
-        tools: SocialMediaTools.all,
+        tools: _tools.all,
       );
 
       if (result.isSuccess) {

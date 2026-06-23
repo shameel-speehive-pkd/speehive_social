@@ -1,8 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speehive_social/core/di/providers.dart';
 import 'package:speehive_social/core/utils/extensions.dart';
+import 'package:speehive_social/presentation/social/screens/draft_list_screen.dart';
 
-class SocialScreen extends StatelessWidget {
+class SocialScreen extends ConsumerStatefulWidget {
   const SocialScreen({super.key});
+
+  @override
+  ConsumerState<SocialScreen> createState() => _SocialScreenState();
+}
+
+class _SocialScreenState extends ConsumerState<SocialScreen> {
+  int _pendingDrafts = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPendingCount();
+  }
+
+  Future<void> _loadPendingCount() async {
+    final draftService = ref.read(draftStorageServiceProvider);
+    final count = await draftService.getPendingCount();
+    if (mounted) {
+      setState(() => _pendingDrafts = count);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,6 +35,23 @@ class SocialScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Social Accounts'),
+        actions: [
+          if (_pendingDrafts > 0)
+            Badge(
+              label: Text('$_pendingDrafts'),
+              child: IconButton(
+                icon: const Icon(Icons.article_outlined),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DraftListScreen(),
+                    ),
+                  ).then((_) => _loadPendingCount());
+                },
+              ),
+            ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -54,6 +95,23 @@ class SocialScreen extends StatelessWidget {
                   _platformButton('Facebook', Icons.facebook, cs),
                 ],
               ),
+              const SizedBox(height: 32),
+              if (_pendingDrafts > 0)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DraftListScreen(),
+                        ),
+                      ).then((_) => _loadPendingCount());
+                    },
+                    icon: const Icon(Icons.article),
+                    label: Text('View $_pendingDrafts Pending Drafts'),
+                  ),
+                ),
             ],
           ),
         ),
