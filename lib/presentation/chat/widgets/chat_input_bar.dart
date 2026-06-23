@@ -94,7 +94,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         maxLines: null,
                         textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
-                          hintText: 'Message Speehive AI...',
+                          hintText: 'Message SpeeHive Intelligence...',
                           border: InputBorder.none,
                           filled: false,
                           contentPadding: const EdgeInsets.symmetric(

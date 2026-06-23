@@ -33,7 +33,7 @@ class SocialMediaTools {
   }
 
   late final _getEventsTool = tool<Map<String, dynamic>, String>(
-    description: 'Get calendar events from Google Calendar or Outlook. Use this to fetch today\'s events or events for a specific date range. Returns event details including title, time, attendees, location, and meeting links.',
+    description: 'Get calendar events from Google Calendar or Outlook. Use this to fetch today\'s events, upcoming events for the month, or events for a specific date range. Returns event details including title, time, attendees, location, and meeting links.',
     inputSchema: Schema<Map<String, dynamic>>(
       jsonSchema: {
         'type': 'object',
@@ -44,7 +44,7 @@ class SocialMediaTools {
           },
           'days': {
             'type': 'integer',
-            'description': 'Number of days to look ahead (default: 1, max: 7)',
+            'description': 'Number of days to look ahead (default: 1, max: 30). Use 30 for "upcoming events" or "this month" queries.',
           },
         },
       },

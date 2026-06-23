@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ai_sdk_dart/ai_sdk_dart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:speehive_social/core/constants/app_constants.dart';
+import 'package:speehive_social/core/constants/prompts.dart';
 import 'package:speehive_social/core/errors/failures.dart';
 import 'package:speehive_social/data/datasources/ai/ai_provider.dart';
 import 'package:speehive_social/domain/entities/chat_message.dart';
@@ -150,12 +151,19 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   List<ModelMessage> _convertMessages(List<ChatMessage> messages) {
-    return messages.map((m) {
-      return ModelMessage(
-        role: _toModelMessageRole(m.role),
-        content: m.content,
-      );
-    }).toList();
+    final systemMessage = ModelMessage(
+      role: ModelMessageRole.system,
+      content: systemPrompt,
+    );
+    return [
+      systemMessage,
+      ...messages.map((m) {
+        return ModelMessage(
+          role: _toModelMessageRole(m.role),
+          content: m.content,
+        );
+      }),
+    ];
   }
 
   ModelMessageRole _toModelMessageRole(MessageRole role) {

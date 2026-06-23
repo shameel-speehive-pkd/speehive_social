@@ -14,6 +14,7 @@ class ChatState {
   final bool isLoading;
   final bool isStreaming;
   final String streamingContent;
+  final List<ToolCallData> streamingToolCalls;
   final String? error;
 
   const ChatState({
@@ -21,6 +22,7 @@ class ChatState {
     this.isLoading = false,
     this.isStreaming = false,
     this.streamingContent = '',
+    this.streamingToolCalls = const [],
     this.error,
   });
 
@@ -29,6 +31,7 @@ class ChatState {
     bool? isLoading,
     bool? isStreaming,
     String? streamingContent,
+    List<ToolCallData>? streamingToolCalls,
     String? error,
   }) {
     return ChatState(
@@ -36,6 +39,7 @@ class ChatState {
       isLoading: isLoading ?? this.isLoading,
       isStreaming: isStreaming ?? this.isStreaming,
       streamingContent: streamingContent ?? this.streamingContent,
+      streamingToolCalls: streamingToolCalls ?? this.streamingToolCalls,
       error: error,
     );
   }
@@ -119,6 +123,7 @@ class ChatNotifier extends Notifier<ChatState> {
       messages: messages,
       isStreaming: true,
       streamingContent: '',
+      streamingToolCalls: [],
       error: null,
     );
 
@@ -133,6 +138,7 @@ class ChatNotifier extends Notifier<ChatState> {
         onToolCalls: (toolCalls) {
           capturedToolCalls = toolCalls;
           debugPrint('[CHAT] Captured ${toolCalls.length} tool calls');
+          state = state.copyWith(streamingToolCalls: toolCalls);
         },
       );
 
@@ -162,6 +168,7 @@ class ChatNotifier extends Notifier<ChatState> {
               messages: [...state.messages, assistantMessage],
               isStreaming: false,
               streamingContent: '',
+              streamingToolCalls: [],
             );
           },
           onError: (error) {

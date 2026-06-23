@@ -103,30 +103,35 @@ class ChatMessageBubble extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          ...message.toolCalls.map((tool) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, size: 14, color: cs.primary),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${tool.name}${tool.result != null ? " ✓" : " ..."}',
-                        style: context.textTheme.bodySmall?.copyWith(
-                          color: cs.onSecondaryContainer,
-                        ),
+          ...message.toolCalls.map((tool) {
+            final isDone = tool.result != null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  isDone
+                      ? Icon(Icons.check_circle, size: 14, color: Colors.green)
+                      : Icon(Icons.radio_button_checked, size: 14, color: cs.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      tool.name,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: cs.onSecondaryContainer,
                       ),
                     ),
-                    if (tool.result != null)
-                      Text(
-                        'Done',
-                        style: context.textTheme.labelSmall?.copyWith(
-                          color: cs.primary,
-                        ),
+                  ),
+                  if (isDone)
+                    Text(
+                      'Done',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: Colors.green,
                       ),
-                  ],
-                ),
-              )),
+                    ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

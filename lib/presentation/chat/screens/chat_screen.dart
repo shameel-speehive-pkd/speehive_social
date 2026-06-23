@@ -70,7 +70,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             const SizedBox(width: 10),
             Text(
-              'Speehive AI',
+              'SpeeHive Intelligence',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -146,7 +146,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Welcome to Speehive AI',
+              'Welcome to SpeeHive Intelligence',
               style: context.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -210,42 +210,122 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildStreamingBubble(ColorScheme cs, ChatState state) {
+    final hasToolCalls = state.streamingToolCalls.isNotEmpty;
+    final hasContent = state.streamingContent.isNotEmpty;
+    final isThinking = !hasToolCalls && !hasContent;
+
     return Padding(
       padding: const EdgeInsets.only(left: 16, right: 64, top: 4, bottom: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-            bottomLeft: Radius.circular(4),
-            bottomRight: Radius.circular(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasToolCalls) _buildStreamingToolCalls(cs, state),
+          if (hasToolCalls && hasContent) const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(hasToolCalls ? 4 : 20),
+                topRight: Radius.circular(20),
+                bottomLeft: const Radius.circular(4),
+                bottomRight: const Radius.circular(20),
+              ),
+            ),
+            child: isThinking
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cs.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Thinking...',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          )),
+                    ],
+                  )
+                : hasContent
+                    ? Text(
+                        state.streamingContent,
+                        style: context.textTheme.bodyMedium,
+                      )
+                    : const SizedBox.shrink(),
           ),
-        ),
-        child: state.streamingContent.isNotEmpty
-            ? Text(
-                state.streamingContent,
-                style: context.textTheme.bodyMedium,
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreamingToolCalls(ColorScheme cs, ChatState state) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer.withAlpha(120),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant.withAlpha(80)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 14, color: cs.onSecondaryContainer),
+              const SizedBox(width: 6),
+              Text(
+                'AI Actions',
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: cs.onSecondaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...state.streamingToolCalls.map((tool) {
+            final isDone = tool.result != null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
                 children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: cs.primary,
+                  isDone
+                      ? Icon(Icons.check_circle, size: 14, color: Colors.green)
+                      : SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cs.primary,
+                          ),
+                        ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      tool.name,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: cs.onSecondaryContainer,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text('Thinking...',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      )),
+                  if (isDone)
+                    Text(
+                      'Done',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: Colors.green,
+                      ),
+                    ),
                 ],
               ),
+            );
+          }),
+        ],
       ),
     );
   }
