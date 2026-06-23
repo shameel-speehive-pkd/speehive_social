@@ -59,6 +59,64 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
+  Future<Result<Stream<String>>> streamResponseWithToolCalls({
+    required List<ChatMessage> messages,
+    required Map<String, dynamic> tools,
+    int? maxSteps,
+    void Function(List<ToolCallData>)? onToolCalls,
+  }) async {
+    try {
+      debugPrint('[CHAT] Repo.streamResponseWithToolCalls: getting languageModel...');
+      final model = _aiProvider.languageModel;
+      final convertedMessages = _convertMessages(messages);
+      final convertedTools = _convertTools(tools);
+      
+      final result = await streamText(
+        model: model,
+        messages: convertedMessages,
+        tools: convertedTools,
+        maxSteps: maxSteps ?? ApiConfig.maxToolSteps,
+        onStepFinish: (step) {
+          debugPrint('[CHAT] Step finished: toolCalls=${step.toolCalls.length}, toolResults=${step.toolResults.length}');
+          
+          if (step.toolCalls.isNotEmpty) {
+            final toolCalls = step.toolCalls.map((tc) {
+              final matchingResult = step.toolResults
+                  .where((tr) => tr.toolCallId == tc.toolCallId)
+                  .map((tr) => tr.output.toString())
+                  .firstOrNull;
+              
+              return ToolCallData(
+                id: tc.toolCallId,
+                name: tc.toolName,
+                arguments: <String, dynamic>{},
+                result: matchingResult,
+              );
+            }).toList();
+            
+            debugPrint('[CHAT] Tool calls: ${toolCalls.map((t) => t.name).join(", ")}');
+            onToolCalls?.call(toolCalls);
+          }
+        },
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('AI request timed out after 30 seconds');
+        },
+      );
+
+      final textStream = result.textStream;
+      return Result.success(textStream);
+    } on TimeoutException catch (e) {
+      return Result.failure(AIServiceFailure(message: e.message ?? 'Request timed out'));
+    } on Failure catch (e) {
+      return Result.failure(e);
+    } catch (e) {
+      return Result.failure(AIServiceFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Result<String>> generateResponse({
     required List<ChatMessage> messages,
     required Map<String, dynamic> tools,

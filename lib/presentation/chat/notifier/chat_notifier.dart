@@ -124,11 +124,16 @@ class ChatNotifier extends Notifier<ChatState> {
 
     _emitTimer?.cancel();
     _accumulatedContent = '';
+    List<ToolCallData> capturedToolCalls = [];
 
     try {
-      final result = await _chatRepository.streamResponse(
+      final result = await _chatRepository.streamResponseWithToolCalls(
         messages: messages,
         tools: _tools.all,
+        onToolCalls: (toolCalls) {
+          capturedToolCalls = toolCalls;
+          debugPrint('[CHAT] Captured ${toolCalls.length} tool calls');
+        },
       );
 
       if (result.isSuccess) {
@@ -151,6 +156,7 @@ class ChatNotifier extends Notifier<ChatState> {
               role: MessageRole.assistant,
               content: _accumulatedContent,
               timestamp: DateTime.now(),
+              toolCalls: capturedToolCalls,
             );
             state = state.copyWith(
               messages: [...state.messages, assistantMessage],

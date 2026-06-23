@@ -53,6 +53,8 @@ class SupabaseConfig {
 
 class GoogleCalendarConfig {
   static String get clientId => dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
+  static String get webClientId => dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
+  static String get webClientSecret => dotenv.env['GOOGLE_WEB_CLIENT_SECRET'] ?? '';
   static const List<String> scopes = [
     'https://www.googleapis.com/auth/calendar.readonly',
   ];

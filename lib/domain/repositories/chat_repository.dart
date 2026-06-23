@@ -8,6 +8,13 @@ abstract class ChatRepository {
     int? maxSteps,
   });
 
+  Future<Result<Stream<String>>> streamResponseWithToolCalls({
+    required List<ChatMessage> messages,
+    required Map<String, dynamic> tools,
+    int? maxSteps,
+    void Function(List<ToolCallData>)? onToolCalls,
+  });
+
   Future<Result<String>> generateResponse({
     required List<ChatMessage> messages,
     required Map<String, dynamic> tools,

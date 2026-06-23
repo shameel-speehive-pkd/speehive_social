@@ -20,6 +20,9 @@ class GoogleCalendarOAuthService {
       clientId: GoogleCalendarConfig.clientId.isNotEmpty
           ? GoogleCalendarConfig.clientId
           : null,
+      serverClientId: GoogleCalendarConfig.webClientId.isNotEmpty
+          ? GoogleCalendarConfig.webClientId
+          : null,
     );
     _googleSignIn.authenticationEvents.listen((event) {
       switch (event) {
