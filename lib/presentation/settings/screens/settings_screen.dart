@@ -1,0 +1,184 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speehive_social/core/constants/app_constants.dart';
+import 'package:speehive_social/core/utils/extensions.dart';
+import 'package:speehive_social/presentation/chat/notifier/chat_notifier.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final _apiKeyController = TextEditingController();
+  final _baseUrlController = TextEditingController();
+  final _modelController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _baseUrlController.text = ApiConfig.baseUrl;
+    _modelController.text = ApiConfig.defaultModel;
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    _baseUrlController.dispose();
+    _modelController.dispose();
+    super.dispose();
+  }
+
+  void _saveConfig() {
+    ref.read(chatProvider.notifier).updateConfig(
+          apiKey: _apiKeyController.text.isNotEmpty
+              ? _apiKeyController.text
+              : null,
+          baseUrl: _baseUrlController.text.isNotEmpty
+              ? _baseUrlController.text
+              : null,
+          model: _modelController.text.isNotEmpty
+              ? _modelController.text
+              : null,
+        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Configuration saved')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = context.colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _sectionHeader('API Configuration', cs),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('API Key',
+                      style: context.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      )),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _apiKeyController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: ApiConfig.apiKey.isNotEmpty
+                          ? '${ApiConfig.apiKey.substring(0, 8)}...'
+                          : 'sk-...',
+                      hintStyle: TextStyle(color: cs.onSurfaceVariant.withAlpha(80)),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.visibility_outlined),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Base URL',
+                      style: context.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      )),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _baseUrlController,
+                    decoration: const InputDecoration(
+                      hintText: 'https://api.opencode.ai/v1',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Model',
+                      style: context.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      )),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _modelController,
+                    decoration: const InputDecoration(
+                      hintText: 'gpt-4o-mini',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _saveConfig,
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text('Save Configuration'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _sectionHeader('Connected Accounts', cs),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.link_off),
+              ),
+              title: const Text('No accounts connected'),
+              subtitle: const Text('Connect social accounts from the Social tab'),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _sectionHeader('About', cs),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.info_outline, color: cs.onSurfaceVariant),
+                  title: const Text('Version'),
+                  trailing: Text(AppConstants.appVersion,
+                      style: context.textTheme.bodyMedium),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: Icon(Icons.terminal, color: cs.onSurfaceVariant),
+                  title: const Text('AI SDK'),
+                  trailing: Text('ai_sdk_dart',
+                      style: context.textTheme.bodyMedium),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        title,
+        style: context.textTheme.titleSmall?.copyWith(
+          color: cs.primary,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}

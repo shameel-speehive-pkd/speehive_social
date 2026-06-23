@@ -1,0 +1,125 @@
+import 'dart:async';
+
+import 'package:ai_sdk_dart/ai_sdk_dart.dart';
+import 'package:flutter/foundation.dart';
+import 'package:speehive_social/core/constants/app_constants.dart';
+import 'package:speehive_social/core/errors/failures.dart';
+import 'package:speehive_social/data/datasources/ai/ai_provider.dart';
+import 'package:speehive_social/domain/entities/chat_message.dart';
+import 'package:speehive_social/domain/repositories/chat_repository.dart';
+
+class ChatRepositoryImpl implements ChatRepository {
+  final AppAIProvider _aiProvider;
+
+  ChatRepositoryImpl(this._aiProvider);
+
+  @override
+  Future<Result<Stream<String>>> streamResponse({
+    required List<ChatMessage> messages,
+    required Map<String, dynamic> tools,
+    int? maxSteps,
+  }) async {
+    try {
+      debugPrint('[CHAT] Repo.streamResponse: getting languageModel...');
+      final model = _aiProvider.languageModel;
+      debugPrint('[CHAT] Repo.streamResponse: got model, converting ${messages.length} messages...');
+      final convertedMessages = _convertMessages(messages);
+      final convertedTools = _convertTools(tools);
+      debugPrint('[CHAT] Repo.streamResponse: converted tools count=${convertedTools.length}');
+      debugPrint('[CHAT] Repo.streamResponse: calling streamText with timeout...');
+      
+      final result = await streamText(
+        model: model,
+        messages: convertedMessages,
+        tools: convertedTools,
+        maxSteps: maxSteps ?? ApiConfig.maxToolSteps,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('[CHAT] Repo.streamResponse: streamText TIMED OUT after 30s');
+          throw TimeoutException('AI request timed out after 30 seconds');
+        },
+      );
+      debugPrint('[CHAT] Repo.streamResponse: streamText returned, result type=${result.runtimeType}');
+
+      final textStream = result.textStream;
+      debugPrint('[CHAT] Repo.streamResponse: got textStream, returning success');
+      return Result.success(textStream);
+    } on TimeoutException catch (e) {
+      debugPrint('[CHAT] Repo.streamResponse: TimeoutException: ${e.message}');
+      return Result.failure(AIServiceFailure(message: e.message ?? 'Request timed out'));
+    } on Failure catch (e) {
+      debugPrint('[CHAT] Repo.streamResponse: Failure caught: ${e.message}');
+      return Result.failure(e);
+    } catch (e, stackTrace) {
+      debugPrint('[CHAT] Repo.streamResponse: Exception caught: $e');
+      debugPrint('[CHAT] Repo.streamResponse: STACK: $stackTrace');
+      return Result.failure(AIServiceFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<String>> generateResponse({
+    required List<ChatMessage> messages,
+    required Map<String, dynamic> tools,
+    int? maxSteps,
+  }) async {
+    try {
+      final model = _aiProvider.languageModel;
+      final convertedMessages = _convertMessages(messages);
+      final convertedTools = _convertTools(tools);
+
+      final result = await generateText(
+        model: model,
+        messages: convertedMessages,
+        tools: convertedTools,
+        maxSteps: maxSteps ?? ApiConfig.maxToolSteps,
+      ).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          throw TimeoutException('AI request timed out after 60 seconds');
+        },
+      );
+
+      return Result.success(result.text);
+    } on TimeoutException catch (e) {
+      return Result.failure(AIServiceFailure(message: e.message ?? 'Request timed out'));
+    } on Failure catch (e) {
+      return Result.failure(e);
+    } catch (e) {
+      return Result.failure(AIServiceFailure(message: e.toString()));
+    }
+  }
+
+  List<ModelMessage> _convertMessages(List<ChatMessage> messages) {
+    return messages.map((m) {
+      return ModelMessage(
+        role: _toModelMessageRole(m.role),
+        content: m.content,
+      );
+    }).toList();
+  }
+
+  ModelMessageRole _toModelMessageRole(MessageRole role) {
+    switch (role) {
+      case MessageRole.user:
+        return ModelMessageRole.user;
+      case MessageRole.assistant:
+        return ModelMessageRole.assistant;
+      case MessageRole.system:
+        return ModelMessageRole.system;
+      case MessageRole.tool:
+        return ModelMessageRole.tool;
+    }
+  }
+
+  ToolSet _convertTools(Map<String, dynamic> tools) {
+    final result = ToolSet();
+    for (final entry in tools.entries) {
+      if (entry.value is Tool) {
+        result[entry.key] = entry.value as Tool<dynamic, dynamic>;
+      }
+    }
+    return result;
+  }
+}
