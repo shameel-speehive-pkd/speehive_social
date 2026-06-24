@@ -49,7 +49,7 @@ class LinkedInPostDatasource {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'X-Restli-Protocol-Version': '2.0.0',
-          'Linkedin-Version': '202401',
+          'LinkedIn-Version': '202606',
         },
         body: json.encode({
           'author': personUrn,
@@ -119,7 +119,7 @@ class LinkedInPostDatasource {
         headers: {
           'Authorization': 'Bearer $token',
           'X-Restli-Protocol-Version': '2.0.0',
-          'Linkedin-Version': '202401',
+          'LinkedIn-Version': '202606',
         },
       );
 

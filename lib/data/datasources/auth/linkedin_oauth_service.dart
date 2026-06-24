@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:speehive_social/core/constants/app_constants.dart';
+import 'package:speehive_social/data/datasources/auth/linkedin_oauth_callback_handler.dart';
 import 'package:speehive_social/data/datasources/local/secure_storage_service.dart';
 
 class LinkedInTokens {
@@ -35,20 +37,36 @@ class LinkedInTokens {
 class LinkedInOAuthService {
   final SecureStorageService _storage;
   LinkedInTokens? _tokens;
+  LinkedInOAuthCallbackHandler? _callbackHandler;
 
   LinkedInOAuthService(this._storage);
 
-  Uri getAuthorizationUrl() {
+  Uri getAuthorizationUrl({String? redirectUri}) {
     final params = {
       'response_type': 'code',
       'client_id': LinkedInConfig.clientId,
-      'redirect_uri': LinkedInConfig.redirectUri,
+      'redirect_uri': redirectUri ?? LinkedInConfig.redirectUri,
       'scope': LinkedInConfig.scopes.join(' '),
       'state': 'speehive_linkedin',
     };
 
     return Uri.parse(LinkedInConfig.authorizationEndpoint)
         .replace(queryParameters: params);
+  }
+
+  Future<String?> startCallbackServer({int port = 34217}) async {
+    _callbackHandler = LinkedInOAuthCallbackHandler();
+    return await _callbackHandler!.startServerAndGetCode(port: port);
+  }
+
+  Future<String?> waitForAuthorizationCode() async {
+    if (_callbackHandler == null) return null;
+    return await _callbackHandler!.authorizationCode;
+  }
+
+  Future<void> stopCallbackServer() async {
+    await _callbackHandler?.stopServer();
+    _callbackHandler = null;
   }
 
   Future<LinkedInTokens?> exchangeCodeForTokens(String code) async {

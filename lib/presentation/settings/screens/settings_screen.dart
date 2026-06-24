@@ -92,8 +92,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _connectLinkedIn() async {
     final linkedinService = ref.read(linkedinOAuthServiceProvider);
-    final authUrl = linkedinService.getAuthorizationUrl();
+    
+    final redirectUri = await linkedinService.startCallbackServer(port: 34217);
+    if (redirectUri == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to start authentication server')),
+        );
+      }
+      return;
+    }
+
+    final authUrl = linkedinService.getAuthorizationUrl(redirectUri: redirectUri);
     await launchUrl(authUrl, mode: LaunchMode.externalApplication);
+
+    final code = await linkedinService.waitForAuthorizationCode();
+    await linkedinService.stopCallbackServer();
+
+    if (code != null) {
+      final tokens = await linkedinService.exchangeCodeForTokens(code);
+      if (tokens != null) {
+        setState(() => _linkedinConnected = true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('LinkedIn connected successfully')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to authenticate with LinkedIn')),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication cancelled or failed')),
+        );
+      }
+    }
   }
 
   Future<void> _disconnectLinkedIn() async {

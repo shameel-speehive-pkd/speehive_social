@@ -32,6 +32,9 @@ dependencies:
   http: ^1.2.0
   url_launcher: ^6.3.0
 
+  # Deep Links
+  app_links: ^6.3.0
+
   # Google
   google_sign_in: ^7.2.0
   extension_google_sign_in_as_googleapis_auth: ^3.0.0
@@ -62,3 +65,4 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/icons/

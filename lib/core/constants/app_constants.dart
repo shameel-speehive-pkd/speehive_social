@@ -38,6 +38,7 @@ class LinkedInConfig {
   static const List<String> scopes = [
     'openid',
     'profile',
+    'email',
     'w_member_social',
   ];
 

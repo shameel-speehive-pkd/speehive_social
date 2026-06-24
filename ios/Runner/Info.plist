@@ -66,5 +66,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.example.speehive_social</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>speehive</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
